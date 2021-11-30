@@ -8,6 +8,10 @@ import {
   signOut,
   User,
 } from "@firebase/auth";
+
+/**
+ * Store
+ */
 import {
   collection,
   addDoc,
@@ -19,8 +23,12 @@ import {
   orderBy,
   onSnapshot,
   DocumentChange,
+  deleteDoc,
   DocumentData,
   updateDoc,
+  getDoc,
+  getDocFromCache,
+  where,
 } from "firebase/firestore";
 import {
   auth,
@@ -79,6 +87,8 @@ const refCollection = () => {
 };
 
 function App() {
+  const [load, setLoad] = useState(false);
+
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
@@ -202,6 +212,43 @@ function App() {
     });
   };
 
+  /**
+   * handleDelete処理
+   */
+  const handleDelete = async (input: string) => {
+    await deleteDoc(doc(db, "cities", "LA"));
+  };
+
+  /**
+   * handleGet処理
+   */
+  const handleGet = async (input: string) => {
+    const docRef = doc(db, "cities", "SF");
+    setLoad(true);
+    const docSnap = await getDoc(docRef);
+    setLoad(false);
+
+    if (docSnap.exists()) {
+      console.log("Document data:", docSnap.data());
+    } else {
+      // doc.data() will be undefined in this case
+      console.log("No such document!");
+    }
+  };
+
+  /**
+   * handleMultipleGet処理
+   */
+  const handleMultipleGet = async (input: string) => {
+    const q = query(collection(db, "cities"), where("capital", "==", true));
+
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      console.log(doc.id, " => ", doc.data());
+    });
+  };
+
   // クエリ作成
   const q = query(ref, orderBy("input", "desc"));
   onSnapshot(q, (snapshot) => {
@@ -302,6 +349,7 @@ function App() {
           flexDirection: "column",
         }}
       >
+        {load && <h1>Loading...</h1>}
         <input onChange={(e) => setInput(e.target.value)} />
         <button onClick={() => handleSet(input)}>set処理</button>
         <button onClick={() => handleAdd(input)}>add処理</button>
@@ -313,6 +361,11 @@ function App() {
           ネストupdate処理
         </button>
         <button onClick={() => handleTimestamp(input)}>timeStamp処理</button>
+        <button onClick={() => handleDelete(input)}>delete処理</button>
+        <button onClick={() => handleGet(input)}>get処理</button>
+        <button onClick={() => handleMultipleGet(input)}>
+          get処理(キャッシュ)
+        </button>
       </div>
     </div>
   );
